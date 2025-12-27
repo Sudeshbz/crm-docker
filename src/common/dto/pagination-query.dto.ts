@@ -17,14 +17,4 @@ export class PaginationQueryDto {
     @Min(1)
     @Max(100)
     limit?: number = 10;
-
-    @ApiPropertyOptional({ example: 'createdAt' })
-    @IsOptional()
-    @IsString()
-    sortBy?: string = 'createdAt';
-
-    @ApiPropertyOptional({ example: 'desc', enum: ['asc', 'desc'] })
-    @IsOptional()
-    @IsString()
-    order?: 'asc' | 'desc' = 'desc';
 }

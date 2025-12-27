@@ -1,37 +1,56 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-import { CustomerStatus } from '../enums/customer-status.enum';
+import { IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { CustomerStatus } from '@prisma/client';
 
 export class CreateCustomerDto {
-    @ApiProperty({ example: 'org-uuid' })
+    @ApiProperty({ maxLength: 80 })
     @IsString()
-    @IsNotEmpty()
-    organizationId: string;
-
-    @ApiProperty({ example: 'Ahmet', maxLength: 80 })
-    @IsString()
-    @IsNotEmpty()
     @MaxLength(80)
     firstName: string;
 
-    @ApiProperty({ example: 'Yılmaz', maxLength: 80 })
+    @ApiProperty({ maxLength: 80 })
     @IsString()
-    @IsNotEmpty()
     @MaxLength(80)
     lastName: string;
 
-    @ApiPropertyOptional({ example: 'ahmet@example.com' })
+    @ApiPropertyOptional()
     @IsOptional()
     @IsEmail()
     email?: string;
 
-    @ApiPropertyOptional({ example: '+90 555 555 55 55', maxLength: 40 })
+    @ApiPropertyOptional({ maxLength: 40 })
     @IsOptional()
     @IsString()
     @MaxLength(40)
     phone?: string;
 
-    @ApiPropertyOptional({ enum: CustomerStatus, example: CustomerStatus.LEAD })
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    companyName?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    vatNumber?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    website?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    address?: string;
+
+    @ApiPropertyOptional({ maxLength: 1000 })
+    @IsOptional()
+    @IsString()
+    @MaxLength(1000)
+    description?: string;
+
+    @ApiPropertyOptional({ enum: CustomerStatus })
     @IsOptional()
     @IsEnum(CustomerStatus)
     status?: CustomerStatus;

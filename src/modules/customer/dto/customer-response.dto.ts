@@ -1,31 +1,30 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CustomerStatus } from '../enums/customer-status.enum';
+import { CustomerStatus } from '@prisma/client';
 
 export class CustomerResponseDto {
-    @ApiProperty({ example: 'uuid' })
+    @ApiProperty()
     id: string;
 
-    @ApiProperty({ example: 'org-uuid' })
-    organizationId: string;
-
-    @ApiProperty({ example: 'Ahmet' })
+    @ApiProperty()
     firstName: string;
 
-    @ApiProperty({ example: 'Yılmaz' })
+    @ApiProperty()
     lastName: string;
 
-    @ApiProperty({ example: 'ahmet@example.com', required: false })
+    @ApiProperty({ required: false })
     email?: string | null;
 
-    @ApiProperty({ example: '+90 555 555 55 55', required: false })
+    @ApiProperty({ required: false })
     phone?: string | null;
 
-    @ApiProperty({ enum: CustomerStatus, example: CustomerStatus.LEAD })
+    @ApiProperty({ required: false })
+    companyName?: string | null;
+
+    @ApiProperty()
     status: CustomerStatus;
 
     @ApiProperty()
     createdAt: Date;
-
     @ApiProperty()
     updatedAt: Date;
 }

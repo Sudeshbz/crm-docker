@@ -7,46 +7,41 @@ import {
     Patch,
     Post,
     Query,
+    Req,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerListQueryDto } from './dto/customer-list-query.dto';
 
 @ApiTags('Customer')
+@ApiBearerAuth('JWT-auth')
 @Controller('customers')
 export class CustomerController {
     constructor(private readonly service: CustomerService) { }
 
     @Post()
-    @ApiOperation({ summary: 'Create customer' })
-    create(@Body() dto: CreateCustomerDto) {
-        return this.service.create(dto);
+    create(@Body() dto: CreateCustomerDto, @Req() req) {
+        return this.service.create(dto, req.user);
     }
 
     @Get()
-    @ApiOperation({ summary: 'List customers (advanced)' })
-    list(@Query() query: CustomerListQueryDto) {
-        return this.service.list(query);
+    list(@Query() query: CustomerListQueryDto, @Req() req) {
+        return this.service.list(query, req.user);
     }
 
     @Patch(':id')
-    @ApiOperation({ summary: 'Update customer' })
     update(
         @Param('id') id: string,
-        @Query('organizationId') organizationId: string,
         @Body() dto: UpdateCustomerDto,
+        @Req() req,
     ) {
-        return this.service.update(id, organizationId, dto);
+        return this.service.update(id, dto, req.user);
     }
 
     @Delete(':id')
-    @ApiOperation({ summary: 'Delete customer (soft)' })
-    delete(
-        @Param('id') id: string,
-        @Query('organizationId') organizationId: string,
-    ) {
-        return this.service.delete(id, organizationId);
+    delete(@Param('id') id: string, @Req() req) {
+        return this.service.delete(id, req.user);
     }
 }

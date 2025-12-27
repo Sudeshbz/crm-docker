@@ -2,6 +2,7 @@ import {
     ConflictException,
     Injectable,
     NotFoundException,
+    UnauthorizedException,
 } from '@nestjs/common';
 import { CustomerRepository, CustomerListParams } from './customer.repository';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -18,45 +19,40 @@ export class CustomerService {
         private readonly prisma: PrismaService,
     ) { }
 
-    async create(dto: CreateCustomerDto): Promise<CustomerResponseDto> {
-        const org = await this.prisma.organization.findFirst({
-            where: {
-                id: dto.organizationId,
-                deletedAt: null,
-                isActive: true,
-            },
-            select: { id: true },
-        });
+    async create(dto: CreateCustomerDto, user: any): Promise<CustomerResponseDto> {
+        const organizationId = user.organizationId;
+        console.log('USER PAYLOAD 👉', user);
 
-        if (!org) throw new NotFoundException('Organization not found');
 
         if (dto.email) {
-            const exists = await this.repo.existsByEmail(
-                dto.organizationId,
-                dto.email,
-            );
+            const exists = await this.repo.existsByEmail(organizationId, dto.email);
             if (exists) {
                 throw new ConflictException('Email already exists in organization');
             }
         }
 
         const customer = await this.repo.create({
-            organization: { connect: { id: dto.organizationId } },
-            firstName: dto.firstName,
-            lastName: dto.lastName,
-            email: dto.email,
-            phone: dto.phone,
+            organization: { connect: { id: organizationId } },
+            owner: { connect: { id: user.userId } },
+            ...dto,
             status: dto.status ?? CustomerStatus.LEAD,
         });
+
 
         return this.toResponse(customer);
     }
 
+
     async update(
         id: string,
-        organizationId: string,
         dto: UpdateCustomerDto,
+        user: any,
     ): Promise<CustomerResponseDto> {
+        const organizationId = user.organizationId;
+        if (!organizationId) {
+            throw new UnauthorizedException('organizationId missing in token payload');
+        }
+
         const current = await this.repo.findByIdAndOrg(id, organizationId);
         if (!current) throw new NotFoundException('Customer not found');
 
@@ -71,54 +67,36 @@ export class CustomerService {
             }
         }
 
-        const data: Record<string, unknown> = {};
-        if (dto.firstName !== undefined) data.firstName = dto.firstName;
-        if (dto.lastName !== undefined) data.lastName = dto.lastName;
-        if (dto.email !== undefined) data.email = dto.email;
-        if (dto.phone !== undefined) data.phone = dto.phone;
-        if (dto.status !== undefined) data.status = dto.status;
-
-        const updated = await this.repo.updateSafe(id, organizationId, data);
+        const updated = await this.repo.updateSafe(id, organizationId, dto);
         if (!updated) throw new NotFoundException('Customer not found');
 
         return this.toResponse(updated);
     }
 
-    async delete(id: string, organizationId: string): Promise<void> {
+
+    async delete(id: string, user: any): Promise<void> {
+        const organizationId = user.organizationId;
+
         const deleted = await this.repo.softDeleteSafe(id, organizationId);
         if (!deleted) throw new NotFoundException('Customer not found');
 
-        // customer silinince task'ları unlink et
         await this.prisma.task.updateMany({
             where: { customerId: id },
             data: { customerId: null },
         });
     }
 
-    async list(query: CustomerListQueryDto) {
+
+    async list(query: CustomerListQueryDto, user: any) {
         const page = query.page ?? 1;
         const limit = query.limit ?? 10;
-
-        const allowedSortBy: CustomerListParams['sortBy'][] = [
-            'createdAt',
-            'updatedAt',
-            'firstName',
-            'lastName',
-        ];
-
-        const sortBy = allowedSortBy.includes(query.sortBy as any)
-            ? (query.sortBy as CustomerListParams['sortBy'])
-            : 'createdAt';
-
-        const order: CustomerListParams['order'] =
-            query.order === 'asc' ? 'asc' : 'desc';
 
         const { items, total } = await this.repo.list({
             page,
             limit,
-            sortBy,
-            order,
-            organizationId: query.organizationId,
+            sortBy: query.sortBy ?? 'createdAt',
+            order: query.order === 'asc' ? 'asc' : 'desc',
+            organizationId: user.organizationId,
             status: query.status,
             search: query.search,
         });
@@ -134,10 +112,10 @@ export class CustomerService {
         };
     }
 
+
     private toResponse(c: any): CustomerResponseDto {
         return {
             id: c.id,
-            organizationId: c.organizationId,
             firstName: c.firstName,
             lastName: c.lastName,
             email: c.email,

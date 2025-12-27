@@ -3,7 +3,7 @@ import { Prisma, Customer } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export type CustomerListParams = {
-    organizationId?: string;
+    organizationId: string;
     status?: string;
     search?: string;
     page: number;
@@ -43,7 +43,8 @@ export class CustomerRepository {
         });
 
         if (result.count === 0) return null;
-        return this.findById(id);
+        return this.findByIdAndOrg(id, organizationId);
+
     }
 
     async softDeleteSafe(id: string, organizationId: string) {
@@ -59,8 +60,8 @@ export class CustomerRepository {
         organizationId: string,
         email: string,
         excludeId?: string,
-    ) {
-        return this.prisma.customer.findFirst({
+    ): Promise<boolean> {
+        const found = await this.prisma.customer.findFirst({
             where: {
                 organizationId,
                 email,
@@ -68,7 +69,10 @@ export class CustomerRepository {
                 ...(excludeId ? { id: { not: excludeId } } : {}),
             },
         });
+
+        return !!found;
     }
+
 
     async list(params: CustomerListParams): Promise<{ items: Customer[]; total: number }> {
         const { organizationId, status, search, page, limit, sortBy, order } = params;

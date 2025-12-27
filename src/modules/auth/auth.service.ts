@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -16,34 +16,46 @@ export class AuthService {
     ) { }
 
     async register(dto: RegisterDto) {
-        const usernameExists = await this.prisma.user.findUnique({
-            where: { username: dto.username },
-        });
-        if (usernameExists) {
-            throw new BadRequestException('Username already exists');
-        }
-
-        const emailExists = await this.prisma.user.findUnique({
-            where: { email: dto.email },
-        });
-        if (emailExists) {
-            throw new BadRequestException('Email already exists');
-        }
-
         const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-        const user = await this.prisma.user.create({
-            data: {
-                username: dto.username,
-                email: dto.email,
-                password: hashedPassword,
-                role: Role.USER,
-            },
+        const result = await this.prisma.$transaction(async (tx) => {
+            const organization = await tx.organization.create({
+                data: {
+                    name: `${dto.username} Organization`,
+                    slug: dto.username.toLowerCase(),
+                    organizationType: 'COMPANY',
+                    planType: 'FREE',
+                    isActive: true,
+                    ownerUserId: 'TEMP',
+                },
+            });
+
+            const user = await tx.user.create({
+                data: {
+                    username: dto.username,
+                    email: dto.email,
+                    password: hashedPassword,
+                    role: Role.USER,
+                    organizationId: organization.id,
+                },
+            });
+
+            await tx.organization.update({
+                where: { id: organization.id },
+                data: { ownerUserId: user.id },
+            });
+
+            return { user, organizationId: organization.id };
         });
 
         return {
-            accessToken: this.createAccessToken(user),
-            refreshToken: await this.createRefreshToken(user.id),
+            accessToken: this.createAccessToken({
+                id: result.user.id,
+                username: result.user.username,
+                role: result.user.role,
+                organizationId: result.organizationId,
+            }),
+            refreshToken: await this.createRefreshToken(result.user.id),
         };
     }
 
@@ -52,17 +64,22 @@ export class AuthService {
             where: { username: dto.username },
         });
 
-        if (!user) {
-            throw new UnauthorizedException('Invalid credentials');
-        }
+        if (!user) throw new UnauthorizedException('Invalid credentials');
 
         const match = await bcrypt.compare(dto.password, user.password);
-        if (!match) {
-            throw new UnauthorizedException('Invalid credentials');
+        if (!match) throw new UnauthorizedException('Invalid credentials');
+
+        if (!user.organizationId) {
+            throw new UnauthorizedException('User has no organization');
         }
 
         return {
-            accessToken: this.createAccessToken(user),
+            accessToken: this.createAccessToken({
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                organizationId: user.organizationId,
+            }),
             refreshToken: await this.createRefreshToken(user.id),
         };
     }
@@ -74,11 +91,16 @@ export class AuthService {
         });
 
         if (!token || token.expiredAt < new Date()) {
-            throw new UnauthorizedException();
+            throw new UnauthorizedException('Invalid refresh token');
         }
 
         return {
-            accessToken: this.createAccessToken(token.user),
+            accessToken: this.createAccessToken({
+                id: token.user.id,
+                username: token.user.username,
+                role: token.user.role,
+                organizationId: token.user.organizationId,
+            }),
             refreshToken: await this.createRefreshToken(token.user.id),
         };
     }
@@ -87,19 +109,21 @@ export class AuthService {
         await this.prisma.refreshToken.deleteMany({ where: { userId } });
     }
 
-    private createAccessToken(user: any) {
+    private createAccessToken(user: { id: string; username: string; role: Role; organizationId: string }) {
         return this.jwt.sign(
             {
                 sub: user.id,
                 username: user.username,
                 role: user.role,
+                organizationId: user.organizationId,
             },
             { expiresIn: '2h' },
         );
     }
 
     private async createRefreshToken(userId: string) {
-        await this.prisma.refreshToken.deleteMany({ where: { userId } }); // Eskileri temizle (Opsiyonel: Sadece süresi dolanları temizle)
+        await this.prisma.refreshToken.deleteMany({ where: { userId } });
+
         const token = randomUUID();
         await this.prisma.refreshToken.create({
             data: {
@@ -108,6 +132,7 @@ export class AuthService {
                 userId,
             },
         });
+
         return token;
     }
 }

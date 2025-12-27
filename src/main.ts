@@ -1,10 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
 import 'dotenv/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // 🔥 BU SATIR HER ŞEYİ DÜZELTİR
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      whitelist: true,
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('Codyol CRM API')
@@ -22,7 +34,7 @@ async function bootstrap() {
 
   SwaggerModule.setup('api', app, document, {
     swaggerOptions: {
-      requestInterceptor: (req: { headers: { Authorization: string; }; }) => {
+      requestInterceptor: (req: { headers: { Authorization?: string } }) => {
         if (
           req.headers.Authorization &&
           !req.headers.Authorization.startsWith('Bearer ')
@@ -36,4 +48,6 @@ async function bootstrap() {
 
   await app.listen(3000);
 }
+
 bootstrap();
+
