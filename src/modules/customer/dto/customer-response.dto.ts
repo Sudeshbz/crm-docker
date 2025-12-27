@@ -6,10 +6,7 @@ export class CustomerResponseDto {
     id: string;
 
     @ApiProperty()
-    firstName: string;
-
-    @ApiProperty()
-    lastName: string;
+    fullName: string;
 
     @ApiProperty({ required: false })
     email?: string | null;
@@ -25,6 +22,7 @@ export class CustomerResponseDto {
 
     @ApiProperty()
     createdAt: Date;
+
     @ApiProperty()
     updatedAt: Date;
 }

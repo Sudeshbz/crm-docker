@@ -3,15 +3,10 @@ import { IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validato
 import { CustomerStatus } from '@prisma/client';
 
 export class CreateCustomerDto {
-    @ApiProperty({ maxLength: 80 })
+    @ApiProperty({ maxLength: 160 })
     @IsString()
-    @MaxLength(80)
-    firstName: string;
-
-    @ApiProperty({ maxLength: 80 })
-    @IsString()
-    @MaxLength(80)
-    lastName: string;
+    @MaxLength(160)
+    fullName: string;
 
     @ApiPropertyOptional()
     @IsOptional()
@@ -49,6 +44,11 @@ export class CreateCustomerDto {
     @IsString()
     @MaxLength(1000)
     description?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    designation?: string;
 
     @ApiPropertyOptional({ enum: CustomerStatus })
     @IsOptional()

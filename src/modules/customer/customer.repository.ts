@@ -8,7 +8,7 @@ export type CustomerListParams = {
     search?: string;
     page: number;
     limit: number;
-    sortBy: 'createdAt' | 'updatedAt' | 'firstName' | 'lastName';
+    sortBy: 'createdAt' | 'updatedAt' | 'fullName';
     order: 'asc' | 'desc';
 };
 
@@ -84,8 +84,7 @@ export class CustomerRepository {
 
         if (search) {
             where.OR = [
-                { firstName: { contains: search, mode: 'insensitive' } },
-                { lastName: { contains: search, mode: 'insensitive' } },
+                { fullName: { contains: search, mode: 'insensitive' } },
                 { email: { contains: search, mode: 'insensitive' } },
             ];
         }

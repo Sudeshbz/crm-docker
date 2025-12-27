@@ -1,5 +1,10 @@
 export enum CustomerStatus {
-    LEAD = 'LEAD',
-    ACTIVE = 'ACTIVE',
-    INACTIVE = 'INACTIVE',
+    NEW = 'NEW',
+    CONTACTED = 'CONTACTED',
+    OFFER_SENT = 'OFFER_SENT',
+    WAITING_APPROVAL = 'WAITING_APPROVAL',
+    APPROVED = 'APPROVED',
+    WON = 'WON',
+    LOST = 'LOST',
 }
+

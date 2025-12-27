@@ -5,12 +5,13 @@ import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 
 export class CustomerListQueryDto extends PaginationQueryDto {
     @ApiPropertyOptional({
-        enum: ['createdAt', 'updatedAt', 'firstName', 'lastName'],
+        enum: ['createdAt', 'updatedAt', 'fullName'],
         example: 'createdAt',
     })
     @IsOptional()
-    @IsIn(['createdAt', 'updatedAt', 'firstName', 'lastName'])
-    sortBy?: 'createdAt' | 'updatedAt' | 'firstName' | 'lastName';
+    @IsIn(['createdAt', 'updatedAt', 'fullName'])
+    sortBy?: 'createdAt' | 'updatedAt' | 'fullName';
+
 
     @ApiPropertyOptional({
         enum: ['asc', 'desc'],
